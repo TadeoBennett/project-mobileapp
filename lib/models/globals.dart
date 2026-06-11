@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 
 class Global {
-  // static const apiBaseUrl = 'https://cpi.sib.org.bz/api';
-  static const apiBaseUrl = 'http://10.10.1.232:8080/api';
+  // static const apiBaseUrl = '';
+  static const apiBaseUrl = 'http://127.0.0.1:5000';
   //Used to make the http request
 
   static Dio dio = Dio(BaseOptions(

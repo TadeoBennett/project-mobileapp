@@ -9,17 +9,12 @@ import '../models/user_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:location/location.dart';
-import 'package:get/get.dart';
 
 import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 
-// import '../data/outlets.dart';
 import '../models/outlet.dart';
 import '../widgets/custom_marker.dart';
-// import '../helpers/session.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class CachedTileProvider extends TileProvider {
@@ -37,42 +32,43 @@ class CachedTileProvider extends TileProvider {
   }
 }
 
-//Stream Subscription stores change location subscription
 StreamSubscription? stream;
 
 final userLocationStreamProvider =
     StreamProvider.autoDispose<UserLocation>((ref) {
-  //Instance of Location is used to get Location
-  final location = Location();
-
-  //StreamController is used to broadcast location changes
-  final StreamController<UserLocation> _locationController =
+  final StreamController<UserLocation> locationController =
       StreamController<UserLocation>.broadcast();
 
-  //Requesting Permission to listen to location changes
-  location.requestPermission().then((granted) {
-    //checks if permission is granted
-    if (granted == PermissionStatus.granted) {
-      //subscription to location changes executed
-      stream = location.onLocationChanged.listen((locationData) {
-        // print('Location ${locationData.longitude}');
+  Geolocator.checkPermission().then((permission) async {
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
 
-        //Emit change in Location!
-        _locationController.add(UserLocation(
-            latitude: locationData.latitude,
-            longitude: locationData.longitude));
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      stream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).listen((position) {
+        locationController.add(UserLocation(
+            latitude: position.latitude, longitude: position.longitude));
       }, onDone: () {
-        print('On done');
-        stream!.cancel();
+        stream?.cancel();
       }, onError: (_) {
         print('An Error Occurred');
       });
     }
   }).catchError((error) {
-    throw error;
+    locationController.addError(error);
   });
 
-  return _locationController.stream;
+  ref.onDispose(() {
+    stream?.cancel();
+    locationController.close();
+  });
+
+  return locationController.stream;
 });
 
 class OutletMapScreen extends ConsumerStatefulWidget {
@@ -108,8 +104,8 @@ class OutletMapScreenState extends ConsumerState<OutletMapScreen> {
   //Cleans Up the Location Subscription upon changing screen
   @override
   void dispose() {
+    stream?.cancel();
     super.dispose();
-    stream!.cancel();
   }
 
   @override
@@ -206,8 +202,13 @@ class OutletMapScreenState extends ConsumerState<OutletMapScreen> {
                       TileLayerWidget(
                         options: TileLayerOptions(
                           urlTemplate:
-                              'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           subdomains: <String>['a', 'b', 'c'],
+                          tileProvider: NetworkTileProvider(
+                            headers: {
+                              'User-Agent': 'CPI App (com.sib.cpi_app)',
+                            },
+                          ),
                         ),
                       ),
                       PopupMarkerLayerWidget(
@@ -235,8 +236,8 @@ class OutletMapScreenState extends ConsumerState<OutletMapScreen> {
   }
 
   List<Marker> showLiveLocation(WidgetRef ref) {
-    final stream = ref.watch(userLocationStreamProvider);
-    return stream.when(
+    final locationStream = ref.watch(userLocationStreamProvider);
+    return locationStream.when(
         data: (value) {
           return [
             Marker(
@@ -253,9 +254,12 @@ class OutletMapScreenState extends ConsumerState<OutletMapScreen> {
           ];
         },
         loading: () => [],
-        // Marker(builder: (ctx) => const Text(''), point: LatLng(0, 0)),
         error: (error, _) {
-          Navigator.of(context).pop();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          });
           return [];
         });
   }

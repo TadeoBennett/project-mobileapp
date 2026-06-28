@@ -1,4 +1,4 @@
-package com.example.cpi_app
+package com.sib.cpi_app
 
 import io.flutter.embedding.android.FlutterActivity
 

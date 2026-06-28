@@ -14,7 +14,6 @@ import 'package:cpi_app/screens/substitution_screen.dart';
 import 'package:cpi_app/screens/sync_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:location/location.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   static const routeName = "/home-screen";

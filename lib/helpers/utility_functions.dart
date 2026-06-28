@@ -1,7 +1,7 @@
 import 'dart:io';
 
+import 'package:geolocator/geolocator.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:location/location.dart';
 
 class UtilityFunctions {
   //used to write to local storage
@@ -16,27 +16,22 @@ class UtilityFunctions {
     }
   }
 
-  //used to check if the location is enabled in the app
   Future<bool> locationEnabled() async {
-    Location location = new Location();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return false;
+    }
 
-    bool _serviceEnabled;
-    PermissionStatus _permissionGranted;
-
-    _serviceEnabled = await location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await location.requestService();
-      if (!_serviceEnabled) {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
         return false;
       }
     }
 
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
-        return false;
-      }
+    if (permission == LocationPermission.deniedForever) {
+      return false;
     }
 
     return true;
@@ -46,13 +41,11 @@ class UtilityFunctions {
     return code.substring(0, 23);
   }
 
-  //used to get the current Location
   Future<Map<String, dynamic>> getCurrentLocation() async {
-    Location location = Location();
-    final locationData = await location.getLocation();
+    final position = await Geolocator.getCurrentPosition();
     return {
-      'latitude': locationData.latitude,
-      'longitude': locationData.longitude,
+      'latitude': position.latitude,
+      'longitude': position.longitude,
     };
   }
 

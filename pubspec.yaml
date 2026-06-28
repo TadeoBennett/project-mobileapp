@@ -46,7 +46,6 @@ dependencies:
   intl: ^0.17.0
   flutter_map: ^2.2.0 
   latlong2: ^0.8.1
-  location: ^4.4.0
   flutter_map_marker_popup: ^3.2.0
   cached_network_image: ^3.2.1
 

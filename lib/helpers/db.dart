@@ -5,7 +5,7 @@ import 'package:path/path.dart';
 
 class DBHelper {
   static const _dbName = 'cpi_app.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   //Gets the database connection or creates a new database connection
   static Future<Database> database() async {
@@ -13,7 +13,18 @@ class DBHelper {
     String path = join(directory.path, _dbName);
 
     return await openDatabase(path,
-        onCreate: DBHelper.createDatabase, version: _dbVersion);
+        onCreate: DBHelper.createDatabase,
+        onUpgrade: DBHelper._onUpgrade,
+        version: _dbVersion);
+  }
+
+  static Future<void> _onUpgrade(
+      Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE outlet ADD COLUMN email TEXT NULL');
+      await db.execute('ALTER TABLE assignment ADD COLUMN lat REAL NULL');
+      await db.execute('ALTER TABLE assignment ADD COLUMN long REAL NULL');
+    }
   }
 
   //Deletes a record from a table in a database connection

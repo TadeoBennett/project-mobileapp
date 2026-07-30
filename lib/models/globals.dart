@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 class Global {
   // static const apiBaseUrl = '';
-  static const apiBaseUrl = 'http://127.0.0.1:5000';
+  static const apiBaseUrl = 'http://127.0.0.1:8080';
   //Used to make the http request
 
   static Dio dio = Dio(BaseOptions(

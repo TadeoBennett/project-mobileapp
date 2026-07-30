@@ -55,7 +55,7 @@ Open `lib/models/globals.dart` and edit the `apiBaseUrl` variable:
 static const apiBaseUrl = 'http://<YOUR_API_HOST>:<PORT>';
 ```
 
-Replace `<YOUR_API_HOST>:<PORT>` with the address of the server running the CPI API (e.g., `http://192.168.1.100:5000` for a device on the local network, or a production URL).
+Replace `<YOUR_API_HOST>:<PORT>` with the address of the server running the CPI API (e.g., `http://192.168.1.100:8080` for a device on the local network, or a production URL).
 
 > **Note**: When running on a physical device or emulator, `127.0.0.1` will not work as it refers to the device itself, not your development machine. Use your machine's local network IP address instead. For Android emulators specifically, `10.0.2.2` maps to the host machine's `127.0.0.1`.
 

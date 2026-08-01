@@ -15,6 +15,12 @@ class Outlet {
   int isNew = 0;
   int failedAutoSync = 0;
   String? email;
+  String? openingTime;
+  String? closingTime;
+  String? photoLocalPath;
+  String? photoUrl;
+  String? photoUpdatedAt;
+  int photoNeedsSync = 0;
 
   set setComplete(bool complete) {
     isCompleted = complete ? 1 : 0;
@@ -39,6 +45,12 @@ class Outlet {
     required this.isNew,
     required this.failedAutoSync,
     this.email,
+    this.openingTime,
+    this.closingTime,
+    this.photoLocalPath,
+    this.photoUrl,
+    this.photoUpdatedAt,
+    this.photoNeedsSync = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -56,7 +68,13 @@ class Outlet {
       'isNew': isNew,
       'failedAutoSync': failedAutoSync,
       'areaId': areaId,
-      'email': email
+      'email': email,
+      'openingTime': openingTime,
+      'closingTime': closingTime,
+      'photoLocalPath': photoLocalPath,
+      'photoUrl': photoUrl,
+      'photoUpdatedAt': photoUpdatedAt,
+      'photoNeedsSync': photoNeedsSync,
     };
   }
 
@@ -74,7 +92,13 @@ class Outlet {
         'isUploaded': isUploaded,
         'isCompleted': isCompleted,
         'failedAutoSync': failedAutoSync,
-        'email': email
+        'email': email,
+        'openingTime': openingTime,
+        'closingTime': closingTime,
+        'photoLocalPath': photoLocalPath,
+        'photoUrl': photoUrl,
+        'photoUpdatedAt': photoUpdatedAt,
+        'photoNeedsSync': photoNeedsSync,
       };
 
   Map<String, dynamic> mapForApi() {
@@ -87,7 +111,9 @@ class Outlet {
       'address': address,
       'phone': phone,
       'area_id': areaId,
-      'email': email
+      'email': email,
+      'opening_time': openingTime,
+      'closing_time': closingTime,
     };
   }
 
@@ -107,6 +133,9 @@ class Outlet {
         isUploaded: $isUploaded, 
         isCompleted: $isCompleted,
         failedAutoSync: $failedAutoSync ,
-        email: $email
+        email: $email,
+        openingTime: $openingTime,
+        closingTime: $closingTime,
+        photoNeedsSync: $photoNeedsSync
       }''';
 }

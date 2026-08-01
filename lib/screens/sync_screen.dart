@@ -153,8 +153,14 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
       //NOTE: Varieties will be downloaded only once upon new Period and initial sync
       //NOTE: Outlets will always be replaced upon Sync Data
 
-      if (isNewTimePeriod == true || totalAssignments == 0) {
-        //------------------NEW PERIOD AND INITIAL SYNC ONLY-------------------------
+      //Varieties are only ever populated through the block below, so an
+      //empty local list is an accurate "never synced" signal - unlike
+      //totalAssignments, which is also 0 for an ordinary collector with
+      //no assignments pending right now, not just on a fresh install.
+      bool hasVarieties = ref.read(varietiesProvider).varieties.isNotEmpty;
+
+      if (isNewTimePeriod) {
+        //------------------NEW TIME PERIOD: CLEAR STALE DATA-------------------------
 
         // clean all the substitutions
         if (mounted) {
@@ -169,15 +175,18 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
         }
         await ref.read(assignmentsProvider).clearAssignments();
 
+        //------------------NEW TIME PERIOD: CLEAR STALE DATA-------------------------
+      }
+
+      if (isNewTimePeriod || !hasVarieties) {
         //download the varieties from the server
         if (mounted) {
           setState(() => loadingMessage = "Downloading Varieties...");
         }
         await ref.read(varietiesProvider).downloadVarieties();
+      }
 
-        //------------------NEW PERIOD AND INITIAL SYNC ONLY-------------------------
-
-      } else {
+      if (!isNewTimePeriod) {
         //------------------DATA UPLOAD START-------------------------
 
         //upload the outlets to the server
@@ -186,6 +195,13 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
         }
 
         await ref.read(outletsProvider).uploadOutlets();
+
+        //upload any outlet photos that failed to upload immediately when captured
+        if (mounted) {
+          setState(() => loadingMessage = "Uploading Outlet Photos...");
+        }
+
+        await ref.read(outletsProvider).syncPendingPhotos();
 
         //upload the varieties to the server
         if (mounted) {

@@ -108,6 +108,10 @@ class Outlets with ChangeNotifier {
           isNew: 0,
           failedAutoSync: 0,
           email: item['email'],
+          openingTime: item['opening_time'],
+          closingTime: item['closing_time'],
+          photoUrl: item['photo_url'],
+          photoUpdatedAt: item['photo_updated_at'],
         );
 
         extractedOutlets.add(outlet);
@@ -174,7 +178,13 @@ class Outlets with ChangeNotifier {
           isUploaded: outlet["isUploaded"],
           isNew: outlet["isNew"],
           failedAutoSync: outlet["failedAutoSync"],
-          email: outlet["email"]);
+          email: outlet["email"],
+          openingTime: outlet["openingTime"],
+          closingTime: outlet["closingTime"],
+          photoLocalPath: outlet["photoLocalPath"],
+          photoUrl: outlet["photoUrl"],
+          photoUpdatedAt: outlet["photoUpdatedAt"],
+          photoNeedsSync: outlet["photoNeedsSync"] ?? 0);
     }).toList();
 
     //replaces the existing assignments
@@ -332,7 +342,8 @@ class Outlets with ChangeNotifier {
       }
 
       //used to handle http errors
-      throw HttpException('Server is down try again later!', 500);
+      print(error);
+      throw HttpException('Server is down try again later! Could not upload new outlet.', 500);
     } catch (error) {
       print(error);
       //Used to handle any errors!
@@ -381,10 +392,99 @@ class Outlets with ChangeNotifier {
       }
 
       //used to handle http errors
-      throw HttpException('Server is down try again later!', 500);
+      print(error);
+      throw HttpException('Server is down try again later! Could not upload edited outlet.', 500);
     } catch (error) {
       print(error);
       //Used to handle any errors!
+      throw HttpException('Something Went wrong Contact Admin!', 600);
+    }
+  }
+
+  //Called when a collector snaps a new outlet photo. Saves the local path and
+  //marks it pending immediately (so the pending state survives even if the
+  //upload below fails or the app is killed), then tries to upload right away.
+  //Any failure here (offline or otherwise) is swallowed silently - the photo
+  //stays queued and will be retried by syncPendingPhotos() on the next manual sync.
+  Future<void> capturePhoto(int outletId, String localFilePath) async {
+    Outlet outlet = getOutletById(outletId);
+    outlet.photoLocalPath = localFilePath;
+    outlet.photoNeedsSync = 1;
+
+    await DBHelper.update(
+        tableName: Global.outletTable,
+        row: outlet.toMap(),
+        where: 'outletId = ?',
+        whereArgs: [outletId]);
+
+    notifyListeners();
+
+    try {
+      await uploadOutletPhoto(outletId, localFilePath);
+      outlet.photoNeedsSync = 0;
+
+      await DBHelper.update(
+          tableName: Global.outletTable,
+          row: outlet.toMap(),
+          where: 'outletId = ?',
+          whereArgs: [outletId]);
+
+      notifyListeners();
+    } catch (error) {
+      //silently queue for the next manual sync
+    }
+  }
+
+  //Uploads a single outlet photo to the server and updates the outlet's photoUrl/photoUpdatedAt
+  Future<void> uploadOutletPhoto(int outletId, String filePath) async {
+    final formData = FormData.fromMap({
+      'photo': await MultipartFile.fromFile(filePath,
+          filename: filePath.split('/').last),
+    });
+
+    final response = await Global.dio.post('/outlets/$outletId/photo',
+        data: formData,
+        options: Options(
+            headers: {'Authorization': 'Bearer ${UserAuth().user()?.token}'}));
+
+    Outlet outlet = getOutletById(outletId);
+    outlet.photoUrl = response.data['photo_url'];
+    outlet.photoUpdatedAt = response.data['photo_updated_at'];
+  }
+
+  //Gets outlets with a photo captured locally that hasn't been uploaded yet
+  List<Outlet> outletsWithPendingPhotoForSync() {
+    return _outlets.where((element) => element.photoNeedsSync == 1).toList();
+  }
+
+  //Used during manual sync to upload any photos that failed to upload immediately
+  Future<void> syncPendingPhotos() async {
+    List<Outlet> pendingOutlets = outletsWithPendingPhotoForSync();
+
+    if (pendingOutlets.isEmpty) {
+      return;
+    }
+
+    try {
+      for (final outlet in pendingOutlets) {
+        await uploadOutletPhoto(outlet.outletId, outlet.photoLocalPath!);
+        outlet.photoNeedsSync = 0;
+
+        await DBHelper.update(
+            tableName: Global.outletTable,
+            row: outlet.toMap(),
+            where: 'outletId = ?',
+            whereArgs: [outlet.outletId]);
+      }
+
+      notifyListeners();
+    } on DioError catch (error) {
+      if (error.response?.statusCode == 401) {
+        throw HttpException('Not Authenticated!', 401);
+      }
+      throw HttpException('Server is down try again later! Could not sync pending photos.', 500);
+    } catch (error) {
+      print(error);
       throw HttpException('Something Went wrong Contact Admin!', 600);
     }
   }

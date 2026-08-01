@@ -20,8 +20,31 @@ class _NewOutletFormState extends ConsumerState<NewOutletForm> {
   String address = '';
   String phone = '';
   String email = '';
+  String? openingTime;
+  String? closingTime;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    openingTime = widget.outlet.openingTime;
+    closingTime = widget.outlet.closingTime;
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  TimeOfDay? _parseTime(String? value) {
+    if (value == null || !value.contains(':')) {
+      return null;
+    }
+    final parts = value.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
 
   //Function used to save the state of the outlet
   Future<void> submitForm() async {
@@ -65,7 +88,13 @@ class _NewOutletFormState extends ConsumerState<NewOutletForm> {
             isCompleted: 0,
             lat: lat,
             long: long,
-            email: email);
+            email: email,
+            openingTime: openingTime,
+            closingTime: closingTime,
+            photoLocalPath: widget.outlet.photoLocalPath,
+            photoUrl: widget.outlet.photoUrl,
+            photoUpdatedAt: widget.outlet.photoUpdatedAt,
+            photoNeedsSync: widget.outlet.photoNeedsSync);
 
         await ref.read(outletsProvider).insertOrUpdate(currentOutlet);
 
@@ -203,6 +232,53 @@ class _NewOutletFormState extends ConsumerState<NewOutletForm> {
                       setState(() {
                         email = val ?? '';
                       });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                        labelText: "Opening Time",
+                        suffixIcon: Icon(Icons.access_time)),
+                    controller: TextEditingController(text: openingTime ?? ''),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime:
+                            _parseTime(openingTime) ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          openingTime = _formatTimeOfDay(picked);
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: TextFormField(
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                        labelText: "Closing Time",
+                        suffixIcon: Icon(Icons.access_time)),
+                    controller: TextEditingController(text: closingTime ?? ''),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime:
+                            _parseTime(closingTime) ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          closingTime = _formatTimeOfDay(picked);
+                        });
+                      }
                     },
                   ),
                 ),

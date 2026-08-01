@@ -5,7 +5,7 @@ import 'package:path/path.dart';
 
 class DBHelper {
   static const _dbName = 'cpi_app.db';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
 
   //Gets the database connection or creates a new database connection
   static Future<Database> database() async {
@@ -24,6 +24,14 @@ class DBHelper {
       await db.execute('ALTER TABLE outlet ADD COLUMN email TEXT NULL');
       await db.execute('ALTER TABLE assignment ADD COLUMN lat REAL NULL');
       await db.execute('ALTER TABLE assignment ADD COLUMN long REAL NULL');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE outlet ADD COLUMN openingTime TEXT NULL');
+      await db.execute('ALTER TABLE outlet ADD COLUMN closingTime TEXT NULL');
+      await db.execute('ALTER TABLE outlet ADD COLUMN photoLocalPath TEXT NULL');
+      await db.execute('ALTER TABLE outlet ADD COLUMN photoUrl TEXT NULL');
+      await db.execute('ALTER TABLE outlet ADD COLUMN photoUpdatedAt TEXT NULL');
+      await db.execute('ALTER TABLE outlet ADD COLUMN photoNeedsSync INTEGER NULL');
     }
   }
 
@@ -106,7 +114,13 @@ class DBHelper {
               isEdited INTEGER,
               isNew INTEGER,
               failedAutoSync INTEGER,
-              email TEXT NULL
+              email TEXT NULL,
+              openingTime TEXT NULL,
+              closingTime TEXT NULL,
+              photoLocalPath TEXT NULL,
+              photoUrl TEXT NULL,
+              photoUpdatedAt TEXT NULL,
+              photoNeedsSync INTEGER NULL
             )
           ''');
 

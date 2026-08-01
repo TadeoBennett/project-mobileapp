@@ -8,6 +8,7 @@ import 'package:cpi_app/screens/outlet_map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/route_manager.dart';
+import 'package:image_picker/image_picker.dart';
 
 final missingCoordinateValue = [0, '', '0', null];
 
@@ -25,6 +26,7 @@ class OutletItem extends ConsumerStatefulWidget {
 
 class _OutletItemState extends ConsumerState<OutletItem> {
   bool isLoading = false;
+  bool isPhotoLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +171,48 @@ class _OutletItemState extends ConsumerState<OutletItem> {
                               }
                             }),
                 ),
+                Material(
+                  color: Colors.white,
+                  child: IconButton(
+                      icon: isPhotoLoading
+                          ? const CircularProgressIndicator()
+                          : Icon(
+                              (widget.outlet.photoLocalPath != null ||
+                                      widget.outlet.photoUrl != null)
+                                  ? Icons.photo
+                                  : Icons.camera_alt,
+                              color: Colors.blueGrey),
+                      onPressed: isPhotoLoading
+                          ? null
+                          : () async {
+                              final pickedFile = await ImagePicker().pickImage(
+                                  source: ImageSource.camera,
+                                  imageQuality: 80);
+
+                              if (pickedFile == null) {
+                                return;
+                              }
+
+                              setState(() {
+                                isPhotoLoading = true;
+                              });
+
+                              try {
+                                await outletProvider.capturePhoto(
+                                    widget.outlet.outletId, pickedFile.path);
+
+                                if (!mounted) return;
+                                showPhotoSavedSnackbar(context);
+                              } catch (e) {
+                                if (!mounted) return;
+                                showChangeLocationErrorMessage(e, context);
+                              } finally {
+                                setState(() {
+                                  isPhotoLoading = false;
+                                });
+                              }
+                            }),
+                ),
               ],
             ),
             title: Text(
@@ -213,6 +257,15 @@ class _OutletItemState extends ConsumerState<OutletItem> {
     ScaffoldMessenger.of(ctx).showSnackBar(
       const SnackBar(
         content: Text('Location updated successfully!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void showPhotoSavedSnackbar(ctx) {
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      const SnackBar(
+        content: Text('Photo saved, will sync!'),
         duration: Duration(seconds: 2),
       ),
     );

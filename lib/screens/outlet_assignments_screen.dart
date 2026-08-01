@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cpi_app/Widgets/assignment_item.dart';
 import 'package:cpi_app/Widgets/new_outlet.dart';
 import 'package:cpi_app/models/assignment.dart';
+import 'package:cpi_app/models/globals.dart';
 import 'package:cpi_app/models/outlet.dart';
 import 'package:cpi_app/providers/assignments.dart';
 import 'package:cpi_app/providers/outlets.dart';
@@ -118,6 +121,40 @@ class OutletAssignmentsScreenState
     );
   }
 
+  void showFullOutletImage(BuildContext context, Outlet outlet) {
+    final ImageProvider image = (outlet.photoLocalPath != null
+        ? FileImage(File(outlet.photoLocalPath!))
+        : CachedNetworkImageProvider(
+            '${Global.apiBaseUrl}${outlet.photoUrl}')) as ImageProvider;
+
+    Navigator.of(context).push(PageRouteBuilder(
+      opaque: false,
+      barrierColor: Colors.black,
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return FadeTransition(
+          opacity: animation,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.white),
+              title: Text(outlet.estName,
+                  style: const TextStyle(color: Colors.white)),
+            ),
+            body: Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image(image: image, fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        );
+      },
+    ));
+  }
+
   Widget emptyOutlet(BuildContext context) {
     return Center(
       child: Text(
@@ -140,21 +177,34 @@ class OutletAssignmentsScreenState
       child: Row(
         mainAxisSize: MainAxisSize.max,
         children: [
-          Container(
-            margin: const EdgeInsets.only(right: 25),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.red,
-            ),
-            child: CircleAvatar(
-              radius: 55,
-              backgroundColor: Colors.amber[300],
-              child: Icon(
-                Icons.store,
-                size: 55,
-                color: Theme.of(context).primaryColor,
+          GestureDetector(
+            onTap: (outlet.photoLocalPath != null || outlet.photoUrl != null)
+                ? () => showFullOutletImage(context, outlet)
+                : null,
+            child: Container(
+              margin: const EdgeInsets.only(right: 25),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.red,
               ),
-              // backgroundColor: Colors.amber[300],
+              child: CircleAvatar(
+                radius: 55,
+                backgroundColor: Colors.amber[300],
+                backgroundImage: outlet.photoLocalPath != null
+                    ? FileImage(File(outlet.photoLocalPath!))
+                    : (outlet.photoUrl != null
+                        ? CachedNetworkImageProvider(
+                            '${Global.apiBaseUrl}${outlet.photoUrl}')
+                        : null) as ImageProvider?,
+                child:
+                    (outlet.photoLocalPath == null && outlet.photoUrl == null)
+                        ? Icon(
+                            Icons.store,
+                            size: 55,
+                            color: Theme.of(context).primaryColor,
+                          )
+                        : null,
+              ),
             ),
           ),
           Expanded(
@@ -195,6 +245,20 @@ class OutletAssignmentsScreenState
                         ['0', '', null].contains(outlet.phone)
                             ? ' No Phone'
                             : outlet.phone,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.access_time,
+                          color: Colors.white, size: 12),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${outlet.openingTime ?? '--:--'} - ${outlet.closingTime ?? '--:--'}',
                         style:
                             const TextStyle(color: Colors.white, fontSize: 12),
                       ),

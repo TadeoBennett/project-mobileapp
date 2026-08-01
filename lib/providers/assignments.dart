@@ -122,7 +122,7 @@ class Assignments with ChangeNotifier {
       await DBHelper.clearTable(Global.assignmentTable);
 
       for (final item in response.data) {
-        print(item);
+        // print(item);
         // verify if it is rejected
         int isRejected = item['status'] == 'rejected' ? 1 : 0;
 
@@ -600,7 +600,7 @@ class Assignments with ChangeNotifier {
   Future<void> reportSyncToApi() async {
     try {
       //upload the assignments
-      await Global.dio.get('/syncing',
+      await Global.dio.get('${Global.apiBaseUrl}/syncing',
           options: Options(headers: {
             'Authorization': 'Bearer ${UserAuth().user()?.token}'
           }));
@@ -611,7 +611,7 @@ class Assignments with ChangeNotifier {
       }
 
       //used to handle http errors
-      throw HttpException('Server is down try again later!', 500);
+      throw HttpException('Server is down try again later! Could not sync report sync.', 500);
     } catch (error) {
       print(error);
       //Used to handle any errors!
